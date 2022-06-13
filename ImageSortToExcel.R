@@ -33,7 +33,7 @@ for(x in allData[3]){
   x <- (sub(":", "/", x))
 }
 allData[3] = x
-#If you have one camera, fill in the quotes with the camera number ie. "CT19". Otherwise, leave it blank and
+#If you have one camera, fill in the quotes with the camera number ie. "CT19". Otherwise, leave it blank and come to me
 allData[, "Station"] = "__"
 # Fill in blank with z# ie. "z4.csv" and uncomment line below once we check that your dataframe looks good to save the dataframe as a .csv file
 write.csv(allData, "__.csv")
