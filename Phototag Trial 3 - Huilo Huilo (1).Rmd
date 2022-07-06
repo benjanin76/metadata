@@ -1,0 +1,262 @@
+---
+title: "Phototag Trial 3 - Huilo Huilo"
+authors: "George Romero and Ben Matz"
+date: '2022-06-16'
+output: html_document
+---
+
+### Loading and Formatting the Time Series Data
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+phototag <- read.csv("C:/Users/benmatz/Box/Duke/DukeEngage/MegaDoc.csv")
+```
+
+### Converting Dates
+
+```{r}
+typeof(phototag$Date)
+```
+
+```{r}
+# Converting character dates into numeric dates.
+phototag$Date <- as.Date(phototag$Date, "%m/%d/%Y",)
+```
+
+### Creating Hour Variable
+
+```{r}
+# Extracting hour data from character time stamps.
+b = vector("numeric", 56297)
+k = 1
+
+for(i in phototag$Time){
+  my_time <- (substr(phototag$Time[k], 1, 2))
+  c = as.numeric(my_time)
+  if(is.na(c)){
+    my_time <- (substr(phototag$Time[k], 1, 1))
+    c = as.numeric(my_time)
+  }
+  b[k] = c
+  k = k+1
+}
+
+phototag[, "NumHour"] = b
+```
+
+### Creating Unique Animal Observation Variable
+
+```{r}
+# Create an additional binary variable for unique animal observation.
+# Note: "Duplicates" were not included in this variable.
+phototag <- phototag %>% 
+  mutate(AnimalPresence = case_when(
+    Container %in% "Animals" ~ "AnimalPresent",
+    Container %in% c("Bugs", "NoAnimals") ~ "AnimalNotPresent"
+  ))
+```
+
+### Creating Type of Animal Variable
+
+```{r}
+# Create an additional binary variable for type of animal among unique animal observations.
+# Note: "Unknown" species were not included in this variable.
+phototag <- phototag %>% 
+  mutate(AnimalCategory = case_when(
+    Species %in% c("Aguilucho (Buteo polyosoma)", "Bailarin (Elanus leucurus)", "Carpintero Negro (Campephilus magellanicus)", "Chincol (Zonotrichia capensis)", "Chirihue (Sicalis luteola)", "Chucao (Scelorchilus rubecula)", "Cometocino Patagonico (Phrygilus patagonicus)", "Concon (Strix rufipes)", "Diucon (Xolmis pyrope)", "Fio - Fio (Elaenia albiceps)", "Gallina Ciega (Plasta) (Caprimulgus longirostris)", "Hued-Hued del Sur (Pteroptochos tarnii)", "Picaflor Chico (Sephanoides sephanoides)", "Pitio (Colaptes pitius)", "Rara (Phytotoma rara)", "Rayadito (Aphrastura spinicauda)", "Tenca (Mimus thenca)", "Torcaza (Patagioenas (Columba) araucana)", "Tordo (Curaeus curaeus)", "Viudita (Peutren) (Colorhamphus parvirostris)", "Zorzal (Turdus falcklandii)") ~ "Bird",
+    Species %in% c("Chingue (Conepatus chinga)", "Chiroptera sp", "Ciervo rojo (Cervus elaphus)", "Guanaco (Lama guanicoe)", "Huemul del sur (Hippocamelus bisulcus)", "Jabali (Sus scrofa)", "Guina o Kod-Kod (Leopardus guigna)", "Pudu (Pudu puda)", "Puma (Puma concolor)", "Raton Olivaceo (Abrothrix olivaceus)", "Zorro Gris o Chilla (Lycalopex griseus)") ~ "Mammal"
+  ))
+```
+
+```{r}
+# Species classification.
+
+# Mammals: chingue, chiroptera, ciervo rojo, guanaco, huemul del sur, jabali, guina o kod kod, pudu, puma, raton olivaceo, zorro gris,
+
+# Birds: aguilucho, bailara, carpintero negro, chincol, chirihue, chucao, cometocino pataganico. concon, diucon, fio-fio, gallina ceiga, hued hued del sur, picaflor chico, pitio, rara, rayadito, tenca, torcaza, tordo, viudita, zorzal
+```
+
+### Creating Season Variable
+
+```{r}
+# Creating a new variable for season. 
+date1 <- "2021-06-21"
+date2 <- "2021-09-23"
+date3 <- "2021-12-21"
+date4 <- "2022-03-20"
+date5 <- "2022-06-21"
+
+phototag <- phototag %>%
+  mutate(Season = case_when(
+    Date >= as.Date(date1, "%Y-%m-%d") & Date < as.Date(date2, "%Y-%m-%d") ~ "Winter",
+    Date >= as.Date(date2, "%Y-%m-%d") & Date < as.Date(date3, "%Y-%m-%d") ~ "Spring",
+    Date >= as.Date(date3, "%Y-%m-%d") & Date < as.Date(date4, "%Y-%m-%d") ~ "Summer",
+    Date >= as.Date(date4, "%Y-%m-%d") & Date < as.Date(date5, "%Y-%m-%d") ~ "Fall"
+  ))
+```
+
+### Creating Animal Dataframe
+
+```{r}
+# Creating a separate data frame containing animals only. 
+animals <- phototag %>%
+  filter(AnimalPresence == "AnimalPresent")
+```
+
+### Creating Bird Dataframe
+
+```{r}
+# Creating a separate data frame containing birds only. 
+birds <- phototag %>%
+  filter(AnimalCategory == "Bird")
+```
+
+### Creating Mammal Datafram
+
+```{r}
+# Creating a separate data frame containing mammals only. 
+mammals <- phototag %>%
+  filter(AnimalCategory == "Mammal")
+```
+
+
+### Animal Observations vs. Date
+
+```{r}
+# Graphing histogram.
+ggplot(data = animals, mapping = aes(x = animals$Date)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = 20) + 
+  labs(x = "Date", y = "Count",
+       title = "Frequency of Animal Observations From July 2021 to May 2022 ") + 
+  theme_bw()
+```
+
+### Animal Observations vs. Hour of Day
+
+```{r}
+# Graphing the histogram. 
+ggplot(data = animals, mapping = aes(x = animals$NumHour)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = 1) + 
+  labs(x = "Hour (24-Hour Clock)", y = "Count",
+       title = "Frequency of Animal Observations by Time of Day") + 
+  theme_bw()
+```
+
+### Animal Presence Status vs. Bird Presence Status (Bird vs. Non-Bird)
+
+```{r}
+# Checking cell counts.
+table(phototag$AnimalCategory, phototag$AnimalPresence)
+```
+
+```{r}
+# Fisher's exact test.
+fisher.test(table(phototag$BirdPresence, phototag$AnimalPresence))
+```
+
+### Animal Observations vs. Hour of Day
+
+```{r}
+ggplot(data = animals, mapping = aes(x = Season)) + 
+  geom_bar(fill = "steelblue") + 
+  labs(title = "Number of Animal Observations by Season", 
+       x = "Region", y = "Count")
+```
+
+### Animal Observations vs. Season vs. Hour of Day
+
+```{r}
+ggplot(data = animals, mapping = aes(x = animals$NumHour)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = 1) + 
+  facet_wrap(~animals$Season) +
+  labs(x = "Hour (24-Hour Clock)", y = "Count",
+       title = "Frequency of Animal Observations by Time of Day for Each Season") + 
+  theme_bw()
+```
+
+### Fisher's Exact for Animal Type and Season
+
+```{r}
+# Plotting a table.
+table(animals$AnimalCategory, animals$Season)
+```
+
+```{r}
+# Fisher's Exact Test.
+fisher.test(table(animals$AnimalCategory, animals$Season))
+```
+
+### Animal Type (Birds) vs. Animal Type (Mammals)
+
+```{r}
+ggplot(data = animals, mapping = aes(x = AnimalCategory)) + 
+  geom_bar(fill = "steelblue") + 
+  labs(title = "Unique Birds Observations vs. Unique Mammal Observations", 
+       x = "Animal Type (N/A Are Unknown, Unclassified Animals)", y = "Count")
+```
+
+### Species (Guanacos) vs. Species (Pumas)
+
+```{r}
+guanacos <- animals %>%
+  filter(Species == "Guanaco (Lama guanicoe)")
+
+pumas <- animals %>%
+  filter(Species == "Puma (Puma concolor)")
+```
+
+```{r}
+ggplot(data = guanacos, mapping = aes(x = guanacos$NumHour)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = 1) + 
+  labs(x = "Hour (24-Hour Clock)", y = "Count",
+       title = "Frequency of Guanaco Observations by Time of Day") + 
+  theme_bw()
+```
+
+```{r}
+ggplot(data = pumas, mapping = aes(x = pumas$NumHour)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = ) + 
+  labs(x = "Hour (24-Hour Clock)", y = "Count",
+       title = "Frequency of Puma Observations by Time of Day") + 
+  theme_bw()
+```
+
+### Mammals vs. Hourly Mammal Observations
+
+```{r}
+ggplot(data = mammals, mapping = aes(x = mammals$NumHour)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = 1) + 
+  facet_wrap(~mammals$Species, nrow = 2) +
+  labs(x = "Hour (24-Hour Clock)", y = "Count",
+       title = "Frequency of Mammal Observations by Time of Day") + 
+  theme_bw()
+```
+
+### Birds vs. Hourly Mammal Observations
+
+```{r}
+ggplot(data = birds, mapping = aes(x = birds$NumHour)) + 
+  geom_histogram(color = "darkblue", 
+                 fill = "lightgray",
+                 binwidth = 1) + 
+  facet_wrap(~birds$Species, nrow = 2) +
+  labs(x = "Hour (24-Hour Clock)", y = "Count",
+       title = "Frequency of Bird Observations by Time of Day") + 
+  theme_bw()
+```
+
